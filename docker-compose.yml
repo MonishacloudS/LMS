@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  postgres-lms:
+    image: postgres:15-alpine
+    container_name: lms-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lms_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-lms-data:/var/lib/postgresql/data
+    networks:
+      - lms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-similar:
+    image: postgres:15-alpine
+    container_name: similar-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: similar_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-similar-data:/var/lib/postgresql/data
+    networks:
+      - lms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  lms-api:
+    build:
+      context: ./services/lms
+      dockerfile: Dockerfile
+    container_name: lms-api
+    environment:
+      DB_HOST: postgres-lms
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: lms_db
+      NODE_ENV: development
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-lms:
+        condition: service_healthy
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+  similar-api:
+    build:
+      context: ./services/similar
+      dockerfile: Dockerfile
+    container_name: similar-api
+    environment:
+      DB_HOST: postgres-similar
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: similar_db
+      LMS_API_URL: http://lms-api:3001
+      NODE_ENV: development
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres-similar
+      - lms-api
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lms-frontend
+    environment:
+      NEXT_PUBLIC_LMS_API_URL: http://localhost:3001
+      NEXT_PUBLIC_SIMILAR_API_URL: http://localhost:3002
+    ports:
+      - "3000:3000"
+    depends_on:
+      - lms-api
+      - similar-api
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+volumes:
+  postgres-lms-data:
+  postgres-similar-data:
+
+networks:
+  lms-network:
+    driver: bridge
+

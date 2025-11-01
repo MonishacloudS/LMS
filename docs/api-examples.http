@@ -1,0 +1,78 @@
+### LMS API Service Examples
+
+### Create a Course
+POST http://localhost:3001/courses
+Content-Type: application/json
+
+{
+  "title": "Introduction to TypeScript",
+  "description": "Learn TypeScript fundamentals and best practices",
+  "category": "Programming",
+  "tags": ["typescript", "programming", "web", "javascript"]
+}
+
+### Get All Courses
+GET http://localhost:3001/courses
+
+### Get All Courses with User Completion
+GET http://localhost:3001/courses?userId=user-123
+
+### Get a Specific Course
+GET http://localhost:3001/courses/{{courseId}}
+
+### Get a Specific Course with Completion Percentage
+GET http://localhost:3001/courses/{{courseId}}?userId=user-123
+
+### Update a Course
+PATCH http://localhost:3001/courses/{{courseId}}
+Content-Type: application/json
+
+{
+  "description": "Updated description"
+}
+
+### Delete a Course
+DELETE http://localhost:3001/courses/{{courseId}}
+
+### Create a Lesson
+POST http://localhost:3001/lessons
+Content-Type: application/json
+
+{
+  "title": "TypeScript Basics",
+  "content": "TypeScript is a typed superset of JavaScript that compiles to plain JavaScript. It adds optional types, classes, and modules to JavaScript.",
+  "orderIndex": 1,
+  "courseId": "{{courseId}}"
+}
+
+### Get All Lessons
+GET http://localhost:3001/lessons
+
+### Get Lessons by Course
+GET http://localhost:3001/lessons?courseId={{courseId}}
+
+### Get a Specific Lesson
+GET http://localhost:3001/lessons/{{lessonId}}
+
+### Update a Lesson
+PATCH http://localhost:3001/lessons/{{lessonId}}
+Content-Type: application/json
+
+{
+  "title": "Updated Lesson Title"
+}
+
+### Delete a Lesson
+DELETE http://localhost:3001/lessons/{{lessonId}}
+
+### Mark Lesson as Completed
+POST http://localhost:3001/lessons/{{lessonId}}/complete?userId=user-123
+
+### Get User Statistics
+GET http://localhost:3001/users/user-123/stats
+
+### Similar Courses Service Examples
+
+### Get Similar Courses
+GET http://localhost:3002/courses/{{courseId}}/similar
+

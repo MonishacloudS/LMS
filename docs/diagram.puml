@@ -1,0 +1,68 @@
+@startuml LMS Architecture
+
+title LMS Architecture Diagram
+
+package "Frontend Layer" {
+  component [Next.js Frontend] as Frontend
+  note right of Frontend
+    Port: 3000
+    SSR + Client Components
+  end note
+}
+
+package "API Layer" {
+  component [LMS API Service] as LMSAPI
+  component [Similar Courses Service] as SimilarAPI
+  
+  note right of LMSAPI
+    Nest.js
+    Port: 3001
+    CRUD operations
+    User stats
+    Lesson completion
+  end note
+  
+  note right of SimilarAPI
+    Nest.js
+    Port: 3002
+    Similarity algorithm
+    HTTP calls to LMS API
+  end note
+}
+
+package "Database Layer" {
+  database "PostgreSQL" as LMSDB
+  database "PostgreSQL" as SimilarDB
+  
+  note right of LMSDB
+    Port: 5432
+    Courses, Lessons
+    Users, Completions
+  end note
+  
+  note right of SimilarDB
+    Port: 5433
+    Course metadata cache
+  end note
+}
+
+Frontend --> LMSAPI : REST API\n(GET /courses, POST /lessons/:id/complete)
+Frontend --> SimilarAPI : REST API\n(GET /courses/:id/similar)
+LMSAPI --> LMSDB : TypeORM\n(Queries & Updates)
+SimilarAPI --> SimilarDB : TypeORM\n(Read operations)
+SimilarAPI --> LMSAPI : HTTP\n(Fetch course data)
+
+' Cloud Deployment Suggestions
+cloud {
+  note top
+    Suggested Cloud Deployment:
+    - Frontend: Vercel/Netlify
+    - API Services: AWS ECS/Kubernetes
+    - Databases: AWS RDS/Managed PostgreSQL
+    - Load Balancer: ALB/NLB
+    - Message Queue: AWS SQS/RabbitMQ (future)
+  end note
+}
+
+@enduml
+
