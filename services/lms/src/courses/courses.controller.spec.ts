@@ -49,11 +49,18 @@ describe('CoursesController', () => {
   });
 
   it('should return an array of courses', async () => {
-    const expectedResult = [{ id: '1', title: 'Test Course' }];
+    const query = {};
+    const expectedResult = {
+      data: [{ id: '1', title: 'Test Course' }],
+      total: 1,
+      page: 1,
+      limit: 10,
+      totalPages: 1,
+    };
     mockCoursesService.findAll.mockResolvedValue(expectedResult);
 
-    const result = await controller.findAll();
+    const result = await controller.findAll(query);
     expect(result).toEqual(expectedResult);
-    expect(service.findAll).toHaveBeenCalled();
+    expect(service.findAll).toHaveBeenCalledWith(query);
   });
 });

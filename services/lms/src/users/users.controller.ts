@@ -1,9 +1,8 @@
-import { Controller, Get, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserStatsResponseDto } from './dto/user-stats-response.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorator';
-import { AuthModule } from '../auth/auth.module';
 
 @Controller('users')
 export class UsersController {
@@ -11,7 +10,7 @@ export class UsersController {
 
   @Public()
   @Post('login')
-  async login(@Body() body: { userId: string }) {
+  async login() {
     // This endpoint allows login with just userId for demonstration
     // In production, this would validate credentials
     return { message: 'Login endpoint - use /auth/login for JWT token' };

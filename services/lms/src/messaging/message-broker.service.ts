@@ -12,7 +12,9 @@ export class MessageBrokerService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     try {
       const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+      // @ts-expect-error - amqplib types have some inconsistencies
       this.connection = await amqp.connect(rabbitmqUrl);
+      // @ts-expect-error - amqplib types have some inconsistencies
       this.channel = await this.connection.createChannel();
 
       await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
@@ -33,6 +35,7 @@ export class MessageBrokerService implements OnModuleInit, OnModuleDestroy {
       await this.channel.close();
     }
     if (this.connection) {
+      // @ts-expect-error - amqplib types have some inconsistencies
       await this.connection.close();
     }
   }
