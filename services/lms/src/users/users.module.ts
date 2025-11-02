@@ -9,10 +9,7 @@ import { Course } from '../courses/entities/course.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, LessonCompletion, Lesson, Course]),
-    AuthModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User, LessonCompletion, Lesson, Course]), AuthModule],
   controllers: [UsersController],
   providers: [UsersService],
   exports: [UsersService],

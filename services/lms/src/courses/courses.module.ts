@@ -7,10 +7,7 @@ import { LessonCompletion } from '../users/entities/lesson-completion.entity';
 import { MessagingModule } from '../messaging/messaging.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Course, LessonCompletion]),
-    MessagingModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Course, LessonCompletion]), MessagingModule],
   controllers: [CoursesController],
   providers: [CoursesService],
   exports: [CoursesService],

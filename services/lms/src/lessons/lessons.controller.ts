@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { LessonsService } from './lessons.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -57,7 +48,10 @@ export class LessonsController {
 
   @Public()
   @Post(':id/complete')
-  async completeLesson(@Param('id') id: string, @Query('userId') userId?: string): Promise<{ message: string }> {
+  async completeLesson(
+    @Param('id') id: string,
+    @Query('userId') userId?: string
+  ): Promise<{ message: string }> {
     const userIdToUse = userId || 'default-user-id';
     await this.usersService.completeLesson(userIdToUse, id);
     return { message: 'Lesson marked as completed' };

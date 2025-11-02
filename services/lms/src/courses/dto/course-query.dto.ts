@@ -39,4 +39,3 @@ export class CourseQueryDto {
   @IsString()
   sortOrder?: 'ASC' | 'DESC' = 'DESC';
 }
-

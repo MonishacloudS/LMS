@@ -14,15 +14,17 @@ export class MessageBrokerService implements OnModuleInit, OnModuleDestroy {
       const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
       this.connection = await amqp.connect(rabbitmqUrl);
       this.channel = await this.connection.createChannel();
-      
+
       await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
       await this.channel.assertQueue(this.queueName, { durable: true });
-      
+
       await this.channel.bindQueue(this.queueName, this.exchangeName, 'course.*');
-      
+
       this.logger.log('Connected to message broker');
     } catch (error) {
-      this.logger.warn(`Message broker connection failed: ${error.message}. Running in fallback mode.`);
+      this.logger.warn(
+        `Message broker connection failed: ${error.message}. Running in fallback mode.`
+      );
     }
   }
 
@@ -107,4 +109,3 @@ export class MessageBrokerService implements OnModuleInit, OnModuleDestroy {
     );
   }
 }
-

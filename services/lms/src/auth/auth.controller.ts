@@ -20,4 +20,3 @@ export class AuthController {
     return user;
   }
 }
-

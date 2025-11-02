@@ -7,4 +7,3 @@ export class PaginatedCoursesResponseDto {
   limit: number;
   totalPages: number;
 }
-

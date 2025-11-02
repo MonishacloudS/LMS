@@ -29,4 +29,3 @@ import { User } from '../users/entities/user.entity';
   exports: [AuthService, JwtAuthGuard],
 })
 export class AuthModule {}
-

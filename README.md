@@ -353,18 +353,21 @@ npm run test:e2e      # E2E tests (Playwright)
 All bonus features from the assignment have been **implemented**:
 
 - ✅ **CI Pipeline (GitHub Actions)**: Fully implemented
+
   - Location: `.github/workflows/ci.yml`
   - Features: Parallel jobs for each service, PostgreSQL test databases, coverage reporting, Docker container builds
   - Runs on: Push to main/develop branches and pull requests
   - Includes: Lint, unit tests, E2E tests, and container builds
 
 - ✅ **Pagination & Filtering on GET /courses**: Fully implemented
+
   - Query parameters: `page`, `limit`, `category`, `tags[]`, `search`, `sortBy`, `sortOrder`
   - Example: `GET /courses?page=1&limit=10&category=Programming&tags[]=typescript&search=API&sortBy=createdAt&sortOrder=DESC`
   - Returns paginated response: `{ data: Course[], total: number, page: number, limit: number, totalPages: number }`
   - Supports filtering by category, tags (array intersection), and search in title
 
 - ✅ **JWT Authentication**: Fully implemented with stubbed secret
+
   - Login endpoint: `POST /auth/login` with `{ userId: string }`
   - Returns JWT token with 7-day expiry
   - Protected routes require `Authorization: Bearer <token>` header

@@ -23,50 +23,59 @@ export class CoursesService {
   async create(createCourseDto: CreateCourseDto): Promise<CourseResponseDto> {
     const course = this.courseRepository.create(createCourseDto);
     const savedCourse = await this.courseRepository.save(course);
-    
+
     // Publish async event
     await this.messageBroker.publishCourseCreated(savedCourse.id, {
       title: savedCourse.title,
       category: savedCourse.category,
       tags: savedCourse.tags,
     });
-    
+
     return this.mapToResponseDto(savedCourse);
   }
 
   async findAll(query: CourseQueryDto): Promise<PaginatedCoursesResponseDto> {
-    const { page = 1, limit = 10, category, tags, search, sortBy = 'createdAt', sortOrder = 'DESC', userId } = query;
-    
+    const {
+      page = 1,
+      limit = 10,
+      category,
+      tags,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+      userId,
+    } = query;
+
     const skip = (page - 1) * limit;
-    
+
     const where: any = {};
-    
+
     if (category) {
       where.category = category;
     }
-    
+
     if (tags && tags.length > 0) {
       // For array columns, we need to check if any tag matches
       // TypeORM doesn't have direct array intersection, so we'll filter in memory
     }
-    
+
     if (search) {
       where.title = Like(`%${search}%`);
     }
-    
+
     const order: any = {};
     order[sortBy] = sortOrder;
-    
+
     const [allCourses, total] = await this.courseRepository.findAndCount({
       where,
       relations: ['lessons'],
       order,
     });
-    
+
     // Filter by tags if provided (array intersection)
     let filteredCourses = allCourses;
     let filteredTotal = total;
-    
+
     if (tags && tags.length > 0) {
       filteredCourses = allCourses.filter((course) => {
         if (!course.tags || course.tags.length === 0) return false;
@@ -74,14 +83,16 @@ export class CoursesService {
       });
       filteredTotal = filteredCourses.length;
     }
-    
+
     // Apply pagination after filtering
     const paginatedCourses = filteredCourses.slice(skip, skip + limit);
-    
+
     const courseDtos = userId
-      ? await Promise.all(paginatedCourses.map((course) => this.mapToResponseDtoWithCompletion(course, userId)))
+      ? await Promise.all(
+          paginatedCourses.map((course) => this.mapToResponseDtoWithCompletion(course, userId))
+        )
       : paginatedCourses.map((course) => this.mapToResponseDto(course));
-    
+
     return {
       data: courseDtos,
       total: filteredTotal,
@@ -116,14 +127,14 @@ export class CoursesService {
     }
     Object.assign(course, updateCourseDto);
     const updatedCourse = await this.courseRepository.save(course);
-    
+
     // Publish async event
     await this.messageBroker.publishCourseUpdated(updatedCourse.id, {
       title: updatedCourse.title,
       category: updatedCourse.category,
       tags: updatedCourse.tags,
     });
-    
+
     return this.mapToResponseDto(updatedCourse);
   }
 

@@ -45,4 +45,3 @@ export class CourseEventsService implements OnModuleInit {
     this.eventEmitter.on('course.updated', callback);
   }
 }
-

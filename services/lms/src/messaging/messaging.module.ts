@@ -7,4 +7,3 @@ import { MessageBrokerService } from './message-broker.service';
   exports: [MessageBrokerService],
 })
 export class MessagingModule {}
-
