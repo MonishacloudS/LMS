@@ -1,0 +1,184 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test-lms:
+    name: Lint and Test LMS API
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lms_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/lms/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./services/lms
+        run: npm ci
+      
+      - name: Run linter
+        working-directory: ./services/lms
+        run: npm run lint
+      
+      - name: Run tests
+        working-directory: ./services/lms
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: lms_db_test
+          NODE_ENV: test
+        run: npm test -- --coverage
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./services/lms/coverage/lcov.info
+          flags: lms-api
+          name: lms-api-coverage
+
+  lint-and-test-similar:
+    name: Lint and Test Similar Courses API
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: similar_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: services/similar/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./services/similar
+        run: npm ci
+      
+      - name: Run linter
+        working-directory: ./services/similar
+        run: npm run lint
+      
+      - name: Run tests
+        working-directory: ./services/similar
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          DB_DATABASE: similar_db_test
+          LMS_API_URL: http://localhost:3001
+          NODE_ENV: test
+        run: npm test -- --coverage
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./services/similar/coverage/lcov.info
+          flags: similar-api
+          name: similar-api-coverage
+
+  lint-and-test-frontend:
+    name: Lint and Test Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Run linter
+        working-directory: ./frontend
+        run: npm run lint
+      
+      - name: Run tests
+        working-directory: ./frontend
+        run: npm test -- --coverage --watchAll=false
+
+  build-containers:
+    name: Build Docker Containers
+    runs-on: ubuntu-latest
+    needs: [lint-and-test-lms, lint-and-test-similar, lint-and-test-frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build LMS API container
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/lms
+          push: false
+          tags: lms-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Build Similar Courses API container
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/similar
+          push: false
+          tags: similar-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Build Frontend container
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: false
+          tags: lms-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+

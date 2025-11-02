@@ -1,11 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like, In } from 'typeorm';
 import { Course } from './entities/course.entity';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CourseResponseDto } from './dto/course-response.dto';
+import { CourseQueryDto } from './dto/course-query.dto';
+import { PaginatedCoursesResponseDto } from './dto/paginated-courses-response.dto';
 import { LessonCompletion } from '../users/entities/lesson-completion.entity';
+import { MessageBrokerService } from '../messaging/message-broker.service';
 
 @Injectable()
 export class CoursesService {
@@ -13,28 +16,77 @@ export class CoursesService {
     @InjectRepository(Course)
     private courseRepository: Repository<Course>,
     @InjectRepository(LessonCompletion)
-    private completionRepository: Repository<LessonCompletion>
+    private completionRepository: Repository<LessonCompletion>,
+    private messageBroker: MessageBrokerService
   ) {}
 
   async create(createCourseDto: CreateCourseDto): Promise<CourseResponseDto> {
     const course = this.courseRepository.create(createCourseDto);
     const savedCourse = await this.courseRepository.save(course);
+    
+    // Publish async event
+    await this.messageBroker.publishCourseCreated(savedCourse.id, {
+      title: savedCourse.title,
+      category: savedCourse.category,
+      tags: savedCourse.tags,
+    });
+    
     return this.mapToResponseDto(savedCourse);
   }
 
-  async findAll(userId?: string): Promise<CourseResponseDto[]> {
-    const courses = await this.courseRepository.find({
-      relations: ['lessons'],
-      order: { createdAt: 'DESC' },
-    });
-
-    if (userId) {
-      return Promise.all(
-        courses.map((course) => this.mapToResponseDtoWithCompletion(course, userId))
-      );
+  async findAll(query: CourseQueryDto): Promise<PaginatedCoursesResponseDto> {
+    const { page = 1, limit = 10, category, tags, search, sortBy = 'createdAt', sortOrder = 'DESC', userId } = query;
+    
+    const skip = (page - 1) * limit;
+    
+    const where: any = {};
+    
+    if (category) {
+      where.category = category;
     }
-
-    return courses.map((course) => this.mapToResponseDto(course));
+    
+    if (tags && tags.length > 0) {
+      // For array columns, we need to check if any tag matches
+      // TypeORM doesn't have direct array intersection, so we'll filter in memory
+    }
+    
+    if (search) {
+      where.title = Like(`%${search}%`);
+    }
+    
+    const order: any = {};
+    order[sortBy] = sortOrder;
+    
+    const [allCourses, total] = await this.courseRepository.findAndCount({
+      where,
+      relations: ['lessons'],
+      order,
+    });
+    
+    // Filter by tags if provided (array intersection)
+    let filteredCourses = allCourses;
+    if (tags && tags.length > 0) {
+      filteredCourses = allCourses.filter((course) => {
+        if (!course.tags || course.tags.length === 0) return false;
+        return tags.some((tag) => course.tags.includes(tag));
+      });
+    }
+    
+    // Apply pagination after filtering
+    const paginatedCourses = filteredCourses.slice(skip, skip + limit);
+    const filteredTotal = filteredCourses.length;
+    
+    const courseDtos = userId
+      ? await Promise.all(paginatedCourses.map((course) => this.mapToResponseDtoWithCompletion(course, userId)))
+      : paginatedCourses.map((course) => this.mapToResponseDto(course));
+    
+    return {
+      data: courseDtos,
+      total: filteredTotal,
+      page,
+      limit,
+      totalPages: Math.ceil(filteredTotal / limit),
+    };
   }
 
   async findOne(id: string, userId?: string): Promise<CourseResponseDto> {
@@ -62,6 +114,14 @@ export class CoursesService {
     }
     Object.assign(course, updateCourseDto);
     const updatedCourse = await this.courseRepository.save(course);
+    
+    // Publish async event
+    await this.messageBroker.publishCourseUpdated(updatedCourse.id, {
+      title: updatedCourse.title,
+      category: updatedCourse.category,
+      tags: updatedCourse.tags,
+    });
+    
     return this.mapToResponseDto(updatedCourse);
   }
 

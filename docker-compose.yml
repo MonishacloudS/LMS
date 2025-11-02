@@ -39,6 +39,25 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: lms-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - lms-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   lms-api:
     build:
       context: ./services/lms
@@ -50,11 +69,15 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       DB_DATABASE: lms_db
+      JWT_SECRET: your-secret-key-change-in-production
+      RABBITMQ_URL: amqp://rabbitmq:5672
       NODE_ENV: development
     ports:
       - "3001:3001"
     depends_on:
       postgres-lms:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - lms-network
@@ -72,12 +95,17 @@ services:
       DB_PASSWORD: postgres
       DB_DATABASE: similar_db
       LMS_API_URL: http://lms-api:3001
+      RABBITMQ_URL: amqp://rabbitmq:5672
       NODE_ENV: development
     ports:
       - "3002:3002"
     depends_on:
-      - postgres-similar
-      - lms-api
+      postgres-similar:
+        condition: service_healthy
+      lms-api:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - lms-network
     restart: unless-stopped
@@ -102,6 +130,7 @@ services:
 volumes:
   postgres-lms-data:
   postgres-similar-data:
+  rabbitmq-data:
 
 networks:
   lms-network:

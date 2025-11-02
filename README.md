@@ -11,13 +11,14 @@ A microservices-based Learning Management System built with Next.js (frontend) a
 git clone <repository-url>
 cd LMS
 
-# Start all services with Docker Compose
+# Start all services with Docker Compose (includes RabbitMQ)
 docker compose up --build
 
 # Access the application
 # Frontend: http://localhost:3000
 # LMS API: http://localhost:3001
 # Similar Courses API: http://localhost:3002
+# RabbitMQ Management: http://localhost:15672 (admin/admin)
 ```
 
 ### Test
@@ -190,9 +191,21 @@ npm run dev
   - Query params: `userId` (required) - User ID
   - Response: `{ message: "Lesson marked as completed" }`
 
+#### Authentication
+
+- `POST /auth/login` - Login and get JWT token
+  - Body: `{ userId: string }`
+  - Response: `{ access_token: string }`
+  - Note: For demonstration, accepts any userId (in production, validate credentials)
+
+- `GET /auth/profile` - Get current user profile (Protected)
+  - Headers: `Authorization: Bearer <token>`
+  - Response: User profile from JWT token
+
 #### Users
 
 - `GET /users/:id/stats` - Get user learning statistics
+  - Headers: `Authorization: Bearer <token>` (optional, falls back to provided ID)
   - Response: `{ totalCourses, totalLessons, completedLessons, completionPercentage, coursesInProgress }`
 
 ### Similar Courses Service (Port 3002)
@@ -218,7 +231,12 @@ The algorithm returns the top 5 most similar courses, sorted by similarity score
 ### Using curl
 
 ```bash
-# Create a course
+# Login and get JWT token
+curl -X POST http://localhost:3001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-123"}'
+
+# Create a course (public endpoint, no auth required)
 curl -X POST http://localhost:3001/courses \
   -H "Content-Type: application/json" \
   -d '{
@@ -228,11 +246,11 @@ curl -X POST http://localhost:3001/courses \
     "tags": ["typescript", "programming", "web"]
   }'
 
-# Get all courses
-curl http://localhost:3001/courses
+# Get all courses with pagination and filtering
+curl "http://localhost:3001/courses?page=1&limit=10&category=Programming&tags[]=typescript&search=API&sortBy=createdAt&sortOrder=DESC"
 
 # Get courses with completion percentage for a user
-curl "http://localhost:3001/courses?userId=user-123"
+curl -H "Authorization: Bearer <token>" "http://localhost:3001/courses?page=1&limit=10&userId=user-123"
 
 # Create a lesson
 curl -X POST http://localhost:3001/lessons \
@@ -341,6 +359,7 @@ The following bonus features from the assignment were **not implemented** in thi
 ### Rationale
 
 The focus was on delivering a **complete, well-architected, and tested** core implementation that demonstrates:
+
 - Clean architecture and SOLID principles
 - Comprehensive domain modeling
 - Full test coverage
