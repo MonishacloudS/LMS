@@ -29,16 +29,7 @@ export class CoursesController {
     return this.coursesService.findOne(id, userId);
   }
 
-  @Get()
-  findAll(@Query() query: CourseQueryDto): Promise<PaginatedCoursesResponseDto> {
-    return this.coursesService.findAll(query);
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string, @Query('userId') userId?: string): Promise<CourseResponseDto> {
-    return this.coursesService.findOne(id, userId);
-  }
-
+  @Public()
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -47,6 +38,7 @@ export class CoursesController {
     return this.coursesService.update(id, updateCourseDto);
   }
 
+  @Public()
   @Delete(':id')
   remove(@Param('id') id: string): Promise<void> {
     return this.coursesService.remove(id);

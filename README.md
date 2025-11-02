@@ -194,6 +194,7 @@ npm run dev
 #### Authentication
 
 - `POST /auth/login` - Login and get JWT token
+
   - Body: `{ userId: string }`
   - Response: `{ access_token: string }`
   - Note: For demonstration, accepts any userId (in production, validate credentials)
@@ -349,24 +350,36 @@ npm run test:e2e      # E2E tests (Playwright)
 
 ## Bonus Features Status
 
-The following bonus features from the assignment were **not implemented** in this submission, focusing instead on delivering a complete, production-ready core implementation:
+All bonus features from the assignment have been **implemented**:
 
-- ❌ **CI Pipeline (GitHub Actions/GitLab)**: Not implemented - Manual testing instructions provided in README
-- ❌ **Pagination & Filtering on GET /courses**: Not implemented - Endpoint returns all courses (suitable for small datasets)
-- ❌ **JWT Authentication**: Not implemented - Uses a default user ID for demonstration purposes
-- ❌ **Async Messaging**: Not implemented - Similar Courses service uses direct HTTP calls to LMS API
+- ✅ **CI Pipeline (GitHub Actions)**: Fully implemented
+  - Location: `.github/workflows/ci.yml`
+  - Features: Parallel jobs for each service, PostgreSQL test databases, coverage reporting, Docker container builds
+  - Runs on: Push to main/develop branches and pull requests
+  - Includes: Lint, unit tests, E2E tests, and container builds
 
-### Rationale
+- ✅ **Pagination & Filtering on GET /courses**: Fully implemented
+  - Query parameters: `page`, `limit`, `category`, `tags[]`, `search`, `sortBy`, `sortOrder`
+  - Example: `GET /courses?page=1&limit=10&category=Programming&tags[]=typescript&search=API&sortBy=createdAt&sortOrder=DESC`
+  - Returns paginated response: `{ data: Course[], total: number, page: number, limit: number, totalPages: number }`
+  - Supports filtering by category, tags (array intersection), and search in title
 
-The focus was on delivering a **complete, well-architected, and tested** core implementation that demonstrates:
+- ✅ **JWT Authentication**: Fully implemented with stubbed secret
+  - Login endpoint: `POST /auth/login` with `{ userId: string }`
+  - Returns JWT token with 7-day expiry
+  - Protected routes require `Authorization: Bearer <token>` header
+  - Public routes marked with `@Public()` decorator (courses, lessons endpoints are public)
+  - Secret configurable via `JWT_SECRET` environment variable (default: `your-secret-key-change-in-production`)
+  - Endpoints: `/auth/login`, `/auth/profile` (protected)
+  - Uses Passport.js with JWT strategy
 
-- Clean architecture and SOLID principles
-- Comprehensive domain modeling
-- Full test coverage
-- Production-ready Docker setup
-- Complete API functionality as specified
-
-These bonus features can be added incrementally and are documented as future enhancements below.
+- ✅ **Async Messaging**: Fully implemented with RabbitMQ
+  - Message broker service using AMQP protocol (`amqplib`)
+  - Publishes events on course creation/update (`course.created`, `course.updated`)
+  - Similar Courses service consumes events for decoupling
+  - Fallback to direct HTTP calls if RabbitMQ unavailable (graceful degradation)
+  - RabbitMQ included in `docker-compose.yml` with management UI
+  - Management UI: http://localhost:15672 (admin/admin)
 
 ## Trade-offs and Future Work
 

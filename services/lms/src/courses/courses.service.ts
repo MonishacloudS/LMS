@@ -65,16 +65,18 @@ export class CoursesService {
     
     // Filter by tags if provided (array intersection)
     let filteredCourses = allCourses;
+    let filteredTotal = total;
+    
     if (tags && tags.length > 0) {
       filteredCourses = allCourses.filter((course) => {
         if (!course.tags || course.tags.length === 0) return false;
         return tags.some((tag) => course.tags.includes(tag));
       });
+      filteredTotal = filteredCourses.length;
     }
     
     // Apply pagination after filtering
     const paginatedCourses = filteredCourses.slice(skip, skip + limit);
-    const filteredTotal = filteredCourses.length;
     
     const courseDtos = userId
       ? await Promise.all(paginatedCourses.map((course) => this.mapToResponseDtoWithCompletion(course, userId)))
