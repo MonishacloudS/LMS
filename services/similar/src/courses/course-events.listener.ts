@@ -17,18 +17,20 @@ export class CourseEventsListener implements OnModuleInit {
       const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
       this.connection = await amqp.connect(rabbitmqUrl);
       this.channel = await this.connection.createChannel();
-      
+
       await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
       await this.channel.assertQueue(this.queueName, { durable: true });
-      
+
       await this.channel.bindQueue(this.queueName, this.exchangeName, 'course.*');
-      
+
       this.logger.log('Connected to message broker');
-      
+
       // Start consuming events
       await this.consumeEvents();
     } catch (error) {
-      this.logger.warn(`Message broker connection failed: ${error.message}. Service will poll LMS API directly.`);
+      this.logger.warn(
+        `Message broker connection failed: ${error.message}. Service will poll LMS API directly.`
+      );
     }
   }
 
@@ -42,10 +44,10 @@ export class CourseEventsListener implements OnModuleInit {
           try {
             const event = JSON.parse(msg.content.toString());
             this.logger.log(`Received event: ${event.eventType} for course ${event.courseId}`);
-            
+
             // Process the event (e.g., invalidate cache, update similarity index)
             await this.handleCourseEvent(event);
-            
+
             this.channel?.ack(msg);
           } catch (error) {
             this.logger.error(`Error processing event: ${error.message}`);
@@ -62,11 +64,10 @@ export class CourseEventsListener implements OnModuleInit {
     // This allows the similar courses service to react to course changes
     // without directly calling the LMS API
     this.logger.log(`Processing ${event.eventType} event for course ${event.courseId}`);
-    
+
     // In a real implementation, this might:
     // - Update local cache
     // - Recalculate similarity scores
     // - Invalidate similarity cache for affected courses
   }
 }
-
