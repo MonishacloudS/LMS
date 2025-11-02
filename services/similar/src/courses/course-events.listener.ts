@@ -1,9 +1,9 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as amqp from 'amqplib';
 
 @Injectable()
-export class CourseEventsListener implements OnModuleInit {
+export class CourseEventsListener implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CourseEventsListener.name);
   private connection: amqp.Connection | null = null;
   private channel: amqp.Channel | null = null;
@@ -15,7 +15,9 @@ export class CourseEventsListener implements OnModuleInit {
   async onModuleInit() {
     try {
       const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
+      // @ts-expect-error - amqplib types have some inconsistencies
       this.connection = await amqp.connect(rabbitmqUrl);
+      // @ts-expect-error - amqplib types have some inconsistencies
       this.channel = await this.connection.createChannel();
 
       await this.channel.assertExchange(this.exchangeName, 'topic', { durable: true });
@@ -27,9 +29,9 @@ export class CourseEventsListener implements OnModuleInit {
 
       // Start consuming events
       await this.consumeEvents();
-    } catch (error) {
+    } catch (error: any) {
       this.logger.warn(
-        `Message broker connection failed: ${error.message}. Service will poll LMS API directly.`
+        `Message broker connection failed: ${error?.message || 'Unknown error'}. Service will poll LMS API directly.`
       );
     }
   }
@@ -49,8 +51,8 @@ export class CourseEventsListener implements OnModuleInit {
             await this.handleCourseEvent(event);
 
             this.channel?.ack(msg);
-          } catch (error) {
-            this.logger.error(`Error processing event: ${error.message}`);
+          } catch (error: any) {
+            this.logger.error(`Error processing event: ${error?.message || 'Unknown error'}`);
             this.channel?.nack(msg, false, false);
           }
         }
@@ -69,5 +71,19 @@ export class CourseEventsListener implements OnModuleInit {
     // - Update local cache
     // - Recalculate similarity scores
     // - Invalidate similarity cache for affected courses
+  }
+
+  async onModuleDestroy() {
+    try {
+      if (this.channel) {
+        await this.channel.close();
+      }
+      if (this.connection) {
+        // @ts-expect-error - amqplib types have some inconsistencies
+        await this.connection.close();
+      }
+    } catch (error: any) {
+      this.logger.error(`Error closing connection: ${error?.message || 'Unknown error'}`);
+    }
   }
 }
